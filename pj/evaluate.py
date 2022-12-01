@@ -18,31 +18,31 @@ def evaluate(model, batch, device, save=False, save_path=None):
     metrics = defaultdict(list)
     batch = allocate_batch(batch, device)
 
-    frame_logit, onset_logit = model(batch['audio'])
+    frame_logit, onset_logit = model(batch['frame_input'])
 
     criterion = nn.BCEWithLogitsLoss()
-    frame_loss = criterion(frame_logit, batch['frame'])
-    onset_loss = criterion(onset_logit, batch['onset'])
+    frame_loss = criterion(frame_logit, batch['frame_output'])
+    onset_loss = criterion(onset_logit, batch['onset_output'])
     metrics['metric/loss/frame_loss'].append(frame_loss.cpu().numpy())
     metrics['metric/loss/onset_loss'].append(onset_loss.cpu().numpy())
 
-    for batch_idx in range(batch['audio'].shape[0]):
-        frame_pred = torch.sigmoid(frame_logit[batch_idx])
-        onset_pred = torch.sigmoid(onset_logit[batch_idx])
+    for batch_idx in range(batch['frame_input'].shape[0]):
+        frame_pred = torch.sigmoid(frame_logit[batch_idx]) #todo 
+        onset_pred = torch.sigmoid(onset_logit[batch_idx]) #todo 
 
-        pr, re, f1 = framewise_eval(frame_pred, batch['frame'][batch_idx])
+        pr, re, f1 = framewise_eval(frame_pred, batch['frame_output'][batch_idx])
         metrics['metric/frame/frame_precision'].append(pr)
         metrics['metric/frame/frame_recall'].append(re)
         metrics['metric/frame/frame_f1'].append(f1)
 
-        pr, re, f1 = framewise_eval(onset_pred, batch['onset'][batch_idx])
+        pr, re, f1 = framewise_eval(onset_pred, batch['onset_output'][batch_idx])
         metrics['metric/frame/onset_precision'].append(pr)
         metrics['metric/frame/onset_recall'].append(re)
         metrics['metric/frame/onset_f1'].append(f1)
 
         p_est, i_est = extract_notes(onset_pred, frame_pred)
         p_ref, i_ref = extract_notes(
-            batch['onset'][batch_idx], batch['frame'][batch_idx])
+            batch['onset_output'][batch_idx], batch['frame_output'][batch_idx])
 
         scaling = HOP_SIZE / SAMPLE_RATE
 

@@ -51,39 +51,27 @@ class MAESTRO_small(Dataset):
         return ['train', 'validation', 'test', 'debug']
 
     def get_file_path_list_of_group(self, group:str) -> List[tuple]:
-        metadata:List[dict] = json.load(open(os.path.join(self.path, 'data.json')))
-        subset_name:str = 'train' if group == 'debug' else group
-
-        files:List[tuple] = sorted([
-                (os.path.join(self.path, row['audio_filename'].replace('.wav', '.flac')),
-                 os.path.join(self.path, row['midi_filename']))
-                for row in metadata if row['split'] == subset_name
-            ])
-
-        if group == 'debug':
-            files = files[:10]
-        else:
-            files = [(audio if os.path.exists(audio) else audio.replace(
-                '.flac', '.wav'), midi) for audio, midi in files]
-
+        files:List[tuple] = []
+        for subdir, dirs, _ in os.walk(self.path):
+            for dir in dirs:
+                input_path = os.path.join(self.path, dir, 'input.midi')
+                output_path = os.path.join(self.path, dir, 'output.midi')
+                files.append((input_path, output_path))
+            break
         return files
     
-    def load(self, audio_path:str, midi_path:str) -> Dict[str,Tensor]:
-        """Loads an audio track and the corresponding labels."""
-        audio, sr = soundfile.read(audio_path, dtype='int16')
-        assert sr == SAMPLE_RATE
+    def load(self, input_path:str, output_path:str) -> Dict[str,Tensor]:
+        input_midi:PrettyMIDI = pretty_midi.PrettyMIDI(input_path)
+        output_midi:PrettyMIDI = pretty_midi.PrettyMIDI(output_path)
 
-        frames_per_sec:float = sr / self.hop_size
+        input_dict = self.midi_to_frame_and_onset(input_midi)
+        output_dict = self.midi_to_frame_and_onset(output_midi)
 
-        audio_tensor:Tensor = torch.ShortTensor(audio)
-        audio_length:int = len(audio_tensor)
+        data = dict(path=input_path, frame_input=input_dict['frame'], onset_input=input_dict['onset'], frame_output=output_dict['frame'], onset_output=output_dict['onset'])
+        return data
 
-        midi:PrettyMIDI = pretty_midi.PrettyMIDI(midi_path)
-        midi_length_sec:float = midi.get_end_time()
-        frame_length:int = min(int(midi_length_sec * frames_per_sec), (audio_length // self.hop_size) + 1)
-
-        audio_tensor = audio_tensor[:frame_length * self.hop_size]
-
+    def midi_to_frame_and_onset(self, midi:PrettyMIDI) -> Dict[str, Tensor]:
+        frames_per_sec:float = 31.25 # todo: 정해야 함.
         frame:ndarray = midi.get_piano_roll(fs=frames_per_sec)
 
         onset = np.zeros_like(frame)
@@ -94,40 +82,40 @@ class MAESTRO_small(Dataset):
         # to shape (time, pitch (88))
         frame_tensor:Tensor = torch.from_numpy(frame[MIN_MIDI:MAX_MIDI + 1].T)
         onset_tensor:Tensor = torch.from_numpy(onset[MIN_MIDI:MAX_MIDI + 1].T)
-        data = dict(path=audio_path, audio=audio_tensor, frame=frame_tensor, onset=onset_tensor)
-        return data
-    
+        return dict(frame=frame_tensor, onset=onset_tensor)
+   
     def __getitem__(self, index:int) -> Dict[str,Tensor]:
         data:Dict[str,Tensor] = self.data[index]
 
-        audio:Tensor = data['audio']
-        frames:Tensor = (data['frame'] >= 1)
-        onsets:Tensor = (data['onset'] >= 1)
+        frames_input:Tensor = (data['frame_input'] >= 1)
+        onsets_input:Tensor = (data['onset_input'] >= 1)
+        frames_output:Tensor = (data['frame_output'] >= 1)
+        onsets_output:Tensor = (data['onset_output'] >= 1)
 
-        frame_len:int = frames.shape[0]
+        # frame_len:int = frames.shape[0]
+        # if self.sample_length is not None:
+        #     n_steps:int = self.sample_length // self.hop_size
 
-        if self.sample_length is not None:
-            n_steps:int = self.sample_length // self.hop_size
-
-            step_begin:int = self.random.randint(frame_len - n_steps) if self.random_sample else 0
-            step_end:int = step_begin + n_steps
+        #     step_begin:int = self.random.randint(frame_len - n_steps) if self.random_sample else 0
+        #     step_end:int = step_begin + n_steps
             
-            sample_begin:int = step_begin * self.hop_size
-            sample_end:int = sample_begin + self.sample_length
+        #     sample_begin:int = step_begin * self.hop_size
+        #     sample_end:int = sample_begin + self.sample_length
 
-            audio_seg:Tensor = audio[sample_begin:sample_end]
-            frame_seg:Tensor = frames[step_begin:step_end]
-            onset_seg:Tensor = onsets[step_begin:step_end]
+        #     audio_seg:Tensor = audio[sample_begin:sample_end]
+        #     frame_seg:Tensor = frames[step_begin:step_end]
+        #     onset_seg:Tensor = onsets[step_begin:step_end]
 
-            result = dict(path=data['path'])
-            result['audio'] = audio_seg.float().div_(32768.0)
-            result['frame'] = frame_seg.float()
-            result['onset'] = onset_seg.float()
-        else:
-            result = dict(path=data['path'])
-            result['audio'] = audio.float().div_(32768.0)
-            result['frame'] = frames.float()
-            result['onset'] = onsets.float()
+        #     result = dict(path=data['path'])
+        #     result['audio'] = audio_seg.float().div_(32768.0)
+        #     result['frame'] = frame_seg.float()
+        #     result['onset'] = onset_seg.float()
+        # else:
+        result = dict(path=data['path'])
+        result['frame_input'] = frames_input.float()
+        result['onset_input'] = onsets_input.float()
+        result['frame_output'] = frames_output.float()
+        result['onset_output'] = onsets_output.float()
 
         return result
 

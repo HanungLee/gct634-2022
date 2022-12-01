@@ -47,7 +47,7 @@ def train(model_type,
         )
         print(f'Adjusted to: {adj_length}')
         sequence_length = adj_length
-
+    print("here1")
     if debug:
         dataset = MAESTRO_small(groups=['debug'],
                                 sequence_length=sequence_length,
@@ -66,7 +66,7 @@ def train(model_type,
                                       hop_size=HOP_SIZE,
                                       random_sample=False)
     loader = DataLoader(dataset, batch_size, shuffle=True)
-
+    print("here0")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if model_type == 'baseline':
@@ -88,12 +88,13 @@ def train(model_type,
     loop = tqdm(range(1, iterations + 1))
 
     for step, batch in zip(loop, cycle(loader)):
+        print("here")
         optimizer.zero_grad()
         batch = allocate_batch(batch, device)
 
-        frame_logit, onset_logit = model(batch['audio'])
-        frame_loss = criterion(frame_logit, batch['frame'])
-        onset_loss = criterion(onset_logit, batch['onset'])
+        frame_logit, onset_logit = model(batch['frame_input'])
+        frame_loss = criterion(frame_logit, batch['frame_output'])
+        onset_loss = criterion(onset_logit, batch['onset_output'])
         loss = onset_loss + frame_loss
 
         loss.mean().backward()

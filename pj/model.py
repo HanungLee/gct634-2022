@@ -80,17 +80,13 @@ class Transcriber(nn.Module):
     def __init__(self, cnn_unit, fc_unit):
         super().__init__()
 
-        self.melspectrogram = LogMelSpectrogram()
-
         self.frame_conv_stack = ConvStack(N_MELS, cnn_unit, fc_unit)
         self.frame_fc = nn.Linear(fc_unit, 88)
 
         self.onset_conv_stack = ConvStack(N_MELS, cnn_unit, fc_unit)
         self.onset_fc = nn.Linear(fc_unit, 88)
 
-    def forward(self, audio):
-        mel = self.melspectrogram(audio)
-
+    def forward(self, frame_input):
         x = self.frame_conv_stack(mel)  # (B, T, C)
         frame_out = self.frame_fc(x)
 
