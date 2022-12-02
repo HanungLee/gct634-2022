@@ -92,31 +92,32 @@ class MAESTRO_small(Dataset):
         frames_output:Tensor = (data['frame_output'] >= 1)
         onsets_output:Tensor = (data['onset_output'] >= 1)
 
-        # frame_len:int = frames.shape[0]
-        # if self.sample_length is not None:
-        #     n_steps:int = self.sample_length // self.hop_size
+        frame_len:int = frames_input.shape[0]
+        if self.sample_length is not None:
+            n_steps:int = self.sample_length // self.hop_size
 
-        #     step_begin:int = self.random.randint(frame_len - n_steps) if self.random_sample else 0
-        #     step_end:int = step_begin + n_steps
+            step_begin:int = self.random.randint(frame_len - n_steps) if self.random_sample else 0
+            step_end:int = step_begin + n_steps
             
-        #     sample_begin:int = step_begin * self.hop_size
-        #     sample_end:int = sample_begin + self.sample_length
+            sample_begin:int = step_begin * self.hop_size
+            sample_end:int = sample_begin + self.sample_length
 
-        #     audio_seg:Tensor = audio[sample_begin:sample_end]
-        #     frame_seg:Tensor = frames[step_begin:step_end]
-        #     onset_seg:Tensor = onsets[step_begin:step_end]
+            frames_input_seg:Tensor = frames_input[sample_begin:sample_end]
+            onsets_input_seg:Tensor = onsets_input[sample_begin:sample_end]
+            frames_output_seg:Tensor = frames_output[sample_begin:sample_end]
+            onsets_output_seg:Tensor = onsets_output[sample_begin:sample_end]
 
-        #     result = dict(path=data['path'])
-        #     result['audio'] = audio_seg.float().div_(32768.0)
-        #     result['frame'] = frame_seg.float()
-        #     result['onset'] = onset_seg.float()
-        # else:
-        result = dict(path=data['path'])
-        result['frame_input'] = frames_input.float()
-        result['onset_input'] = onsets_input.float()
-        result['frame_output'] = frames_output.float()
-        result['onset_output'] = onsets_output.float()
-
+            result = dict(path=data['path'])
+            result['frame_input'] = frames_input_seg.float()
+            result['onset_input'] = onsets_input_seg.float()
+            result['frame_output'] = frames_output_seg.float()
+            result['onset_output'] = onsets_output_seg.float()
+        else:
+            result = dict(path=data['path'])
+            result['frame_input'] = frames_input.float()
+            result['onset_input'] = onsets_input.float()
+            result['frame_output'] = frames_output.float()
+            result['onset_output'] = onsets_output.float()
         return result
 
     def __len__(self) -> int:

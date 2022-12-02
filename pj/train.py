@@ -66,7 +66,6 @@ def train(model_type,
                                       hop_size=HOP_SIZE,
                                       random_sample=False)
     loader = DataLoader(dataset, batch_size, shuffle=True)
-    print("here0")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if model_type == 'baseline':
@@ -81,14 +80,12 @@ def train(model_type,
                                  learning_rate,
                                  weight_decay=weight_decay)
     scheduler = StepLR(optimizer, step_size=1000, gamma=0.98)
+    
     criterion = nn.BCEWithLogitsLoss()
-
     model = model.to(device)
-
     loop = tqdm(range(1, iterations + 1))
 
     for step, batch in zip(loop, cycle(loader)):
-        print("here")
         optimizer.zero_grad()
         batch = allocate_batch(batch, device)
 
