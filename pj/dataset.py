@@ -54,8 +54,8 @@ class MAESTRO_small(Dataset):
         files:List[tuple] = []
         for subdir, dirs, _ in os.walk(self.path):
             for dir in dirs:
-                input_path = os.path.join(self.path, dir, 'input.midi')
-                output_path = os.path.join(self.path, dir, 'output.midi')
+                input_path = os.path.join(self.path, dir, 'input.mid')
+                output_path = os.path.join(self.path, dir, 'output.mid')
                 files.append((input_path, output_path))
             break
         return files
@@ -102,10 +102,10 @@ class MAESTRO_small(Dataset):
             sample_begin:int = step_begin * self.hop_size
             sample_end:int = sample_begin + self.sample_length
 
-            frames_input_seg:Tensor = frames_input[sample_begin:sample_end]
-            onsets_input_seg:Tensor = onsets_input[sample_begin:sample_end]
-            frames_output_seg:Tensor = frames_output[sample_begin:sample_end]
-            onsets_output_seg:Tensor = onsets_output[sample_begin:sample_end]
+            frames_input_seg:Tensor = frames_input[step_begin:step_end]
+            onsets_input_seg:Tensor = onsets_input[step_begin:step_end]
+            frames_output_seg:Tensor = frames_output[step_begin:step_end]
+            onsets_output_seg:Tensor = onsets_output[step_begin:step_end]
 
             result = dict(path=data['path'])
             result['frame_input'] = frames_input_seg.float()

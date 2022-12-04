@@ -3,7 +3,7 @@ MIN_MIDI = 21
 MAX_MIDI = 108
 
 HOP_SIZE = 512
-N_MELS = 229
+N_MELS = 88 # 의미 알아야 함.
 N_FFT = 2048
 F_MIN = 30
 F_MAX = 8000

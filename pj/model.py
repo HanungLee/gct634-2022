@@ -87,10 +87,10 @@ class Transcriber(nn.Module):
         self.onset_fc = nn.Linear(fc_unit, 88)
 
     def forward(self, frame_input):
-        x = self.frame_conv_stack(mel)  # (B, T, C)
+        x = self.frame_conv_stack(frame_input)  # (B, T, C)
         frame_out = self.frame_fc(x)
 
-        x = self.onset_conv_stack(mel)  # (B, T, C)
+        x = self.onset_conv_stack(frame_input)  # (B, T, C)
         onset_out = self.onset_fc(x)
         return frame_out, onset_out
 
