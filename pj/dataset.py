@@ -48,16 +48,24 @@ class MAESTRO_small(Dataset):
 
     @classmethod
     def available_groups(cls) -> List[str]:
-        return ['train', 'validation', 'test', 'debug']
+        return ['train', 'validation', 'test', 'debug']    
 
     def get_file_path_list_of_group(self, group:str) -> List[tuple]:
-        files:List[tuple] = []
-        for subdir, dirs, _ in os.walk(self.path):
-            for dir in dirs:
-                input_path = os.path.join(self.path, dir, 'input.mid')
-                output_path = os.path.join(self.path, dir, 'output.mid')
-                files.append((input_path, output_path))
-            break
+        metadata:List[dict] = json.load(open(os.path.join(self.path, 'data.json')))
+        subset_name:str = 'train' if group == 'debug' else group
+
+        files:List[tuple] = sorted([
+                (os.path.join(self.path, row['directory'], 'orchestra.mid'),
+                 os.path.join(self.path, row['directory'], 'piano.mid'))
+                for row in metadata if row['split'] == subset_name
+            ])
+
+        if group == 'debug':
+            files = files[:10]
+        else:
+            files = [(audio if os.path.exists(audio) else audio.replace(
+                '.flac', '.wav'), midi) for audio, midi in files]
+
         return files
     
     def load(self, input_path:str, output_path:str) -> Dict[str,Tensor]:
@@ -86,7 +94,6 @@ class MAESTRO_small(Dataset):
    
     def __getitem__(self, index:int) -> Dict[str,Tensor]:
         data:Dict[str,Tensor] = self.data[index]
-
         frames_input:Tensor = (data['frame_input'] >= 1)
         onsets_input:Tensor = (data['onset_input'] >= 1)
         frames_output:Tensor = (data['frame_output'] >= 1)
